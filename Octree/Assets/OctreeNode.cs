@@ -10,7 +10,6 @@ public enum Voxel
     EMPTY
 }
 
-
 public class OctreeNode
 {
 
@@ -21,7 +20,7 @@ public class OctreeNode
         {
             if (_root == null)
             {
-                _root = new OctreeNode(null, Vector3.zero, 50f, new List<OctreeItem>());
+                _root = new OctreeNode(null, Vector3.zero, 1000f, Voxel.FILLED);
             }
 
             return _root;
@@ -29,7 +28,7 @@ public class OctreeNode
     }
 
     public OctreeNode parent;
-    public List<OctreeItem> containedItems = new List<OctreeItem>();
+    public Voxel data;
 
     OctreeNode[] _children = new OctreeNode[8];
     public OctreeNode[] children
@@ -40,18 +39,22 @@ public class OctreeNode
         }
     }
 
+    public bool isLeaf()
+    {
+        return ReferenceEquals(children[0], null);
+    }
+
+    public bool isRoot()
+    {
+        return this == _root;
+    }
+
     public float halfSize;
     public Vector3 pos { get; private set; }
-
-
-    static int itemLimit = 1;
-    static float sizeLimit = 0.25f;
 
     GameObject GO;
     LineRenderer ren;
     public bool debug = true;
-
-    public Voxel data;
 
     [RuntimeInitializeOnLoadMethod]
     static bool Init()
@@ -61,58 +64,18 @@ public class OctreeNode
 
     }
 
-    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, List<OctreeItem> items)
-    {
-        //data = Voxel.EMPTY;
-        data = (Voxel)UnityEngine.Random.Range(0, 2);
-
-        //Debug.Log(data);
-        CreateNode(parent, pos, halfSize, items);
-    }
-
-    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, List<OctreeItem> items, Voxel data)
-    {
-        this.data = data;
-        CreateNode(parent, pos, halfSize, items);
-    }
-
-    void CreateNode(OctreeNode parent, Vector3 pos, float halfSize, List<OctreeItem> items)
+    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, Voxel _data)
     {
         this.parent = parent;
         this.pos = pos;
         this.halfSize = halfSize;
-
+        data = _data;
         if (debug)
         {
             GO = new GameObject();
             GO.hideFlags = HideFlags.HideInHierarchy;
             ren = GO.AddComponent<LineRenderer>();
             Visualize();
-        }
-
-        foreach (var item in items)
-        {
-            ProcessItem(item);
-        }
-    }
-
-    public void ReduceSubdivisions(OctreeItem item)
-    {
-        if (!ReferenceEquals(getRoot, this) && !SiblingsHaveTooManyChildren())
-        {
-            foreach (var child in parent.children)
-            {
-                if (!ReferenceEquals(child, null))
-                {
-                    child.KillNode(parent.children.Where(i => !ReferenceEquals(i, this)).ToArray());
-                }
-            }
-            parent.EraseChildren();
-        }
-        else
-        {
-            containedItems.Remove(item);
-            item.owners.Remove(this);
         }
     }
 
@@ -123,104 +86,40 @@ public class OctreeNode
 
     private void KillNode(OctreeNode[] obsSiblings)
     {
-        foreach (var item in containedItems)
-        {
-            item.owners = item.owners.Except(obsSiblings).ToList();
-            item.owners.Remove(this);
-            item.owners.Add(parent);
-            parent.containedItems.Add(item);
-        }
+
         GameObject.Destroy(GO);
 
     }
 
-    bool SiblingsHaveTooManyChildren()
+    //Create overload  with data for data deserialaztion and node creation from memory
+    public void Subdivide(Voxel[] data)
     {
-        List<OctreeItem> childItems = new List<OctreeItem>();
-        foreach (var item in parent.children)
-        {
-            if (!ReferenceEquals(item, null))
-            {
-                if (!ReferenceEquals(item._children[0], null))
-                {
-                    return true;
-                }
-                childItems.AddRange(item.containedItems.Where(i => !childItems.Contains(i)));
-            }
-        }
-
-        if (childItems.Count > itemLimit + 1)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    public bool ProcessItem(OctreeItem item)
-    {
-        if (ContainsItem(item.transform.position))
-        {
-            if (ReferenceEquals(children[0], null))
-            {
-                PushItem(item);
-                return true;
-            }
-            else
-            {
-                foreach (var child in children)
-                {
-                    if (child.ProcessItem(item))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private void PushItem(OctreeItem item)
-    {
-        if (!containedItems.Contains(item))
-        {
-            containedItems.Add(item);
-            item.owners.Add(this);
-        }
-
-        if (containedItems.Count > itemLimit)
-        {
-            Split();
-        }
-    }
-
-    private void Split()
-    {
-        if (halfSize / 2 < sizeLimit)
-        {
-            return;
-        }
-
-        foreach (var item in containedItems)
-        {
-            item.owners.Remove(this);
-        }
-
         Vector3 newPos = new Vector3(halfSize / 2, halfSize / 2, halfSize / 2);
         for (int i = 0; i < 4; i++)
         {
-            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, containedItems);
+            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i]);
             newPos = Quaternion.Euler(0, -90f, 0) * newPos;
         }
         newPos = new Vector3(halfSize / 2, -halfSize / 2, halfSize / 2);
         for (int i = 4; i < 8; i++)
         {
-            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, containedItems);
+            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i]);
             newPos = Quaternion.Euler(0, -90f, 0) * newPos;
         }
 
-        containedItems.Clear();
+    }
+
+    public static OctreeNode NodeWithItem(Vector3 pos, OctreeNode start)
+    {
+        if (start.isLeaf())
+        {
+            return start;
+        }
+        foreach (var item in start.children.Where(x => x.ContainsItem(pos)))
+        {
+            return NodeWithItem(pos, item);
+        }
+        return null;
     }
 
     public bool ContainsItem(Vector3 position)
@@ -255,8 +154,9 @@ public class OctreeNode
 
         ren.useWorldSpace = true;
         ren.positionCount = (16);
-        ren.startWidth = 0.03f;
-        ren.endWidth = 0.03f;
+        ren.startWidth = halfSize / 100;
+        ren.endWidth = halfSize / 100;
+        ren.material = VoxelManager.vm.debugrenMaterialNorm;
 
         ren.SetPosition(0, coords[0]);
         ren.SetPosition(1, coords[1]);
@@ -277,5 +177,10 @@ public class OctreeNode
         ren.SetPosition(15, coords[4]);
 
 
+    }
+
+    public void SetRendererMaterial(Material mat)
+    {
+        ren.material = mat;
     }
 }

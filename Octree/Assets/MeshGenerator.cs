@@ -16,7 +16,7 @@ public class MeshGenerator : MonoBehaviour
 
     void GenerateCubes(OctreeNode node)
     {
-        if (ReferenceEquals(node.children[0], null))
+        if (node.isLeaf())
         {
 
             //Debug.Log(" at Mesh " + node.data);
