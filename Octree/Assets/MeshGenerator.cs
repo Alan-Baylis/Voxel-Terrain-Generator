@@ -14,7 +14,7 @@ public class MeshGenerator : MonoBehaviour
         root = OctreeNode.getRoot;
     }
 
-    void GenerateCubes(OctreeNode node)
+    public void GenerateCubes(OctreeNode node)
     {
         if (node.isLeaf())
         {

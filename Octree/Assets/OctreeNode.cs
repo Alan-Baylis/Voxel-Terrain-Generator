@@ -20,7 +20,7 @@ public class OctreeNode
         {
             if (_root == null)
             {
-                _root = new OctreeNode(null, Vector3.zero, 1000f, Voxel.FILLED);
+                _root = new OctreeNode(null, Vector3.zero, 1024f, Voxel.FILLED);
             }
 
             return _root;
@@ -30,7 +30,7 @@ public class OctreeNode
     public OctreeNode parent;
     public Voxel data;
 
-    OctreeNode[] _children = new OctreeNode[8];
+    private OctreeNode[] _children = new OctreeNode[8];
     public OctreeNode[] children
     {
         get
@@ -41,7 +41,7 @@ public class OctreeNode
 
     public bool isLeaf()
     {
-        return ReferenceEquals(children[0], null);
+        return ReferenceEquals(_children[0], null);
     }
 
     public bool isRoot()
@@ -52,8 +52,11 @@ public class OctreeNode
     public float halfSize;
     public Vector3 pos { get; private set; }
 
+    public int depth { get; private set; }
+
+
     GameObject GO;
-    LineRenderer ren;
+    public LineRenderer ren;
     public bool debug = true;
 
     [RuntimeInitializeOnLoadMethod]
@@ -70,25 +73,36 @@ public class OctreeNode
         this.pos = pos;
         this.halfSize = halfSize;
         data = _data;
+
+        depth = (parent == null ? 0 : parent.depth) + 1;
         if (debug)
         {
             GO = new GameObject();
-            GO.hideFlags = HideFlags.HideInHierarchy;
+            //GO.hideFlags = HideFlags.HideInHierarchy;
             ren = GO.AddComponent<LineRenderer>();
+            GO.transform.parent = (parent == null ? null : parent.GO.transform);
+            GO.name = depth.ToString();
             Visualize();
         }
     }
 
+    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, Voxel _data, String name) : this(parent, pos, halfSize, _data)
+    {
+        GO.name = depth.ToString() + " " + name;
+    }
+
     private void EraseChildren()
     {
+        foreach (var item in _children)
+        {
+            item.KillNode();
+        }
         _children = new OctreeNode[8];
     }
 
-    private void KillNode(OctreeNode[] obsSiblings)
+    private void KillNode()
     {
-
         GameObject.Destroy(GO);
-
     }
 
     //Create overload  with data for data deserialaztion and node creation from memory
@@ -97,28 +111,28 @@ public class OctreeNode
         Vector3 newPos = new Vector3(halfSize / 2, halfSize / 2, halfSize / 2);
         for (int i = 0; i < 4; i++)
         {
-            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i]);
+            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i], i.ToString());
             newPos = Quaternion.Euler(0, -90f, 0) * newPos;
         }
         newPos = new Vector3(halfSize / 2, -halfSize / 2, halfSize / 2);
         for (int i = 4; i < 8; i++)
         {
-            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i]);
+            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i], i.ToString());
             newPos = Quaternion.Euler(0, -90f, 0) * newPos;
         }
 
     }
 
-    public static OctreeNode NodeWithItem(Vector3 pos, OctreeNode start)
+    public static OctreeNode ChildNodeWithItem(Vector3 pos, OctreeNode start)
     {
-        if (start.isLeaf())
+        foreach (var item in start.children)
         {
-            return start;
+            if (item.ContainsItem(pos))
+            {
+                return item;
+            }
         }
-        foreach (var item in start.children.Where(x => x.ContainsItem(pos)))
-        {
-            return NodeWithItem(pos, item);
-        }
+
         return null;
     }
 
@@ -131,6 +145,49 @@ public class OctreeNode
         if (position.z > pos.z + halfSize || position.z < pos.z - halfSize)
             return false;
         return true;
+    }
+
+    public OctreeNode CreateSubdivisionsWithItem(int maxDepth, Vector3 pos)
+    {
+        OctreeNode nextChild = this;
+
+        for (int i = 0; i < maxDepth; i++)
+        {
+            if (nextChild.isLeaf())
+            {
+                nextChild.Subdivide(VoxelDataGenerater.vdm.GenerateChildData(nextChild));
+            }
+            nextChild = ChildNodeWithItem(pos, nextChild);
+            if (nextChild == null) return null;
+
+        }
+
+        return nextChild;
+    }
+
+    public bool ReduceSubdivisionsWithoutItem(Vector3 pos, OctreeNode start)
+    {
+        bool erased = false;
+        while (!start.ParentNodeHasItem(pos))
+        {
+            erased = true;
+            start = start.parent;
+            start.EraseChildren();
+        }
+
+        return erased;
+    }
+
+    public bool ParentNodeHasItem(Vector3 pos)
+    {
+        if (!ReferenceEquals(getRoot, this))
+        {
+            return parent.ContainsItem(pos);
+        }
+        else
+        {
+            return true;
+        }
     }
 
     void Visualize()

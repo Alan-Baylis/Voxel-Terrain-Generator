@@ -5,6 +5,20 @@ using UnityEngine;
 public class VoxelDataGenerater
 {
 
+    static VoxelDataGenerater _vdm;
+
+    public static VoxelDataGenerater vdm
+    {
+        get
+        {
+            if (_vdm == null)
+            {
+                _vdm = new VoxelDataGenerater();
+            }
+            return _vdm;
+        }
+    }
+
     public Voxel[] GenerateChildData(OctreeNode parent)
     {
         Voxel[] data = new Voxel[8];

@@ -20,9 +20,8 @@ public class VoxelManager : MonoBehaviour
 
     OctreeNode playerNode;
     OctreeNode prePlayerNode;
-    VoxelDataGenerater DataGen;
 
-
+    public MeshGenerator vmg;
 
     public Material debugrenMaterialNorm, debugrenMaterialHigh;
     public int maxGenerations = 3;
@@ -39,37 +38,40 @@ public class VoxelManager : MonoBehaviour
 
     void Start()
     {
-        DataGen = new VoxelDataGenerater();
-        UpdateGenerations();
+
     }
 
     void UpdateGenerations()
     {
-        playerNode = OctreeNode.getRoot;
-        for (int i = 0; i < maxGenerations; i++)
-        {
-            playerNode.Subdivide(DataGen.GenerateChildData(playerNode));
-            playerNode = OctreeNode.NodeWithItem(Player.position, playerNode);
-        }
+
+        playerNode = OctreeNode.getRoot.CreateSubdivisionsWithItem(maxGenerations, Player.position);
+        vmg.GenerateCubes(OctreeNode.getRoot);
     }
 
-    Vector3 prePos;
     void FixedUpdate()
     {
 
-        if (prePos != Player.position)
+
+        if (OctreeNode.getRoot.ContainsItem(Player.position) && (playerNode == null || !playerNode.ContainsItem(Player.position)))
         {
-            //UpdateGenerations();
-            if (playerNode == null || ReferenceEquals(playerNode, prePlayerNode)) return;
+            UpdateGenerations();
 
             if (prePlayerNode != null)
             {
-                prePlayerNode.SetRendererMaterial(debugrenMaterialNorm);
+                if (!prePlayerNode.ReduceSubdivisionsWithoutItem(Player.position, prePlayerNode))
+                {
+                    prePlayerNode.SetRendererMaterial(debugrenMaterialNorm);
+                    prePlayerNode.ren.startWidth = prePlayerNode.halfSize / 100;
+                    prePlayerNode.ren.endWidth = prePlayerNode.halfSize / 100;
+                }
             }
-
-            playerNode.SetRendererMaterial(debugrenMaterialHigh);
+            if (playerNode != null)
+            {
+                playerNode.SetRendererMaterial(debugrenMaterialHigh);
+                playerNode.ren.startWidth = playerNode.halfSize / 100 + Vector3.Distance(playerNode.pos, Player.position) / 100;
+                playerNode.ren.endWidth = playerNode.halfSize / 100 + Vector3.Distance(playerNode.pos, Player.position) / 100;
+            }
             prePlayerNode = playerNode;
-            prePos = Player.position;
         }
     }
 
