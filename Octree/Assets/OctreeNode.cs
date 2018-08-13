@@ -4,12 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public enum Voxel
-{
-    FILLED,
-    EMPTY
-}
-
 public class OctreeNode
 {
 
@@ -20,7 +14,7 @@ public class OctreeNode
         {
             if (_root == null)
             {
-                _root = new OctreeNode(null, Vector3.zero, 1024f, Voxel.FILLED);
+                _root = new OctreeNode(null, Vector3.zero, 1024f, Voxel.FILLED, 0);
             }
 
             return _root;
@@ -49,47 +43,48 @@ public class OctreeNode
         return this == _root;
     }
 
+
     public float halfSize;
     public Vector3 pos { get; private set; }
 
     public int depth { get; private set; }
+    public int childIndex { get; private set; }
 
 
     GameObject GO;
     public LineRenderer ren;
-    public bool debug = true;
 
-    [RuntimeInitializeOnLoadMethod]
-    static bool Init()
+    //[RuntimeInitializeOnLoadMethod]
+    public static bool Init()
     {
 
         return getRoot == null;
 
     }
 
-    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, Voxel _data)
+    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, Voxel _data, int childIndex)
     {
         this.parent = parent;
         this.pos = pos;
         this.halfSize = halfSize;
         data = _data;
+        this.childIndex = childIndex;
 
         depth = (parent == null ? 0 : parent.depth) + 1;
-        if (debug)
+
+        if (VoxelManager.vm.debug)
         {
             GO = new GameObject();
             //GO.hideFlags = HideFlags.HideInHierarchy;
             ren = GO.AddComponent<LineRenderer>();
             GO.transform.parent = (parent == null ? null : parent.GO.transform);
             GO.name = depth.ToString();
+            GO.name = depth.ToString() + " " + childIndex.ToString();
             Visualize();
         }
     }
 
-    public OctreeNode(OctreeNode parent, Vector3 pos, float halfSize, Voxel _data, String name) : this(parent, pos, halfSize, _data)
-    {
-        GO.name = depth.ToString() + " " + name;
-    }
+
 
     private void EraseChildren()
     {
@@ -102,25 +97,46 @@ public class OctreeNode
 
     private void KillNode()
     {
+        VoxelManager.vmg.removeMesh.Add(this);
         GameObject.Destroy(GO);
     }
 
     //Create overload  with data for data deserialaztion and node creation from memory
     public void Subdivide(Voxel[] data)
     {
+        Vector3[] positions = childrenPositions(pos);
+        Subdivide(data, positions);
+    }
+
+    public void Subdivide(Voxel[] data, Vector3[] positions)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            _children[i] = new OctreeNode(this, positions[i], halfSize / 2, data[i], i);
+        }
+        for (int i = 4; i < 8; i++)
+        {
+            _children[i] = new OctreeNode(this, positions[i], halfSize / 2, data[i], i);
+        }
+
+    }
+
+    public Vector3[] childrenPositions(Vector3 pos)
+    {
+        Vector3[] v = new Vector3[8];
         Vector3 newPos = new Vector3(halfSize / 2, halfSize / 2, halfSize / 2);
         for (int i = 0; i < 4; i++)
         {
-            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i], i.ToString());
+            v[i] = pos + newPos;
             newPos = Quaternion.Euler(0, -90f, 0) * newPos;
         }
         newPos = new Vector3(halfSize / 2, -halfSize / 2, halfSize / 2);
         for (int i = 4; i < 8; i++)
         {
-            _children[i] = new OctreeNode(this, pos + newPos, halfSize / 2, data[i], i.ToString());
+            v[i] = pos + newPos;
             newPos = Quaternion.Euler(0, -90f, 0) * newPos;
         }
-
+        return v;
     }
 
     public static OctreeNode ChildNodeWithItem(Vector3 pos, OctreeNode start)
@@ -155,7 +171,8 @@ public class OctreeNode
         {
             if (nextChild.isLeaf())
             {
-                nextChild.Subdivide(VoxelDataGenerater.vdm.GenerateChildData(nextChild));
+                Vector3[] positions = nextChild.childrenPositions(nextChild.pos);
+                nextChild.Subdivide(VoxelManager.vdm.GenerateChildData(this, positions), positions);
             }
             nextChild = ChildNodeWithItem(pos, nextChild);
             if (nextChild == null) return null;
@@ -238,6 +255,7 @@ public class OctreeNode
 
     public void SetRendererMaterial(Material mat)
     {
-        ren.material = mat;
+        if (VoxelManager.vm.debug)
+            ren.material = mat;
     }
 }

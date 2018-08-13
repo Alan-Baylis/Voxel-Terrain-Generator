@@ -4,41 +4,54 @@ using UnityEngine;
 
 public class VoxelDataGenerater
 {
-
-    static VoxelDataGenerater _vdm;
-
-    public static VoxelDataGenerater vdm
-    {
-        get
-        {
-            if (_vdm == null)
-            {
-                _vdm = new VoxelDataGenerater();
-            }
-            return _vdm;
-        }
-    }
-
-    public Voxel[] GenerateChildData(OctreeNode parent)
+    public Voxel[] GenerateChildData(OctreeNode parent, Vector3[] childPositions)
     {
         Voxel[] data = new Voxel[8];
-        int passParentData = 4;
         if (parent == null)
         {
             throw new System.Exception("Node does not have a parent");
         }
-        for (int i = 0; i < passParentData; i++)
-        {
-            data[Random.Range(0, passParentData)] = parent.data;
-        }
 
+        float halfSize = OctreeNode.getRoot.halfSize;
         for (int i = 0; i < 8; i++)
         {
+            data[i] = DataAtPoint(childPositions[i].x, childPositions[i].y, childPositions[i].z);
 
-            data[i] = (Voxel)Random.Range(0, System.Enum.GetNames(typeof(Voxel)).Length);
-            //Debug.Log(data[i]);
+            //data[i] = (Voxel)((childPositions[i].y < Mathf.Sin(childPositions[i].x) * OctreeNode.getRoot.halfSize) ? 0 : 1);
+
         }
 
         return data;
+    }
+
+    public Voxel[,,] GenerateData(int size, float scale, Vector3Int startPos)
+    {
+
+        Voxel[,,] data = new Voxel[size, size, size]; ;
+        for (int i = 0; i < size; i++)
+        {
+            for (int j = 0; j < size; j++)
+            {
+                for (int k = 0; k < size; k++)
+                {
+                    data[i, j, k] = DataAtPoint((i + startPos.x) / (float)size * scale, (j + startPos.y) / (float)size * scale, (k + startPos.z) / (float)size * scale);
+                }
+            }
+        }
+
+        return data;
+    }
+
+    public Voxel DataAtPoint(float x, float y, float z)
+    {
+        if ((new Planet(10, 4, 10, 0.25f).intersects(x, y, z) || new Belt(7, 4, 7, 4f, .5f).intersects(x, y, z) || new Planet(10, 4, 12, 2f).intersects(x, y, z)) && Mathf.RoundToInt(PerlinNoise.Perlin(x, y, z, 1.5f)) > 0)
+        {
+            return Voxel.EMPTY;
+        }
+        else
+        {
+            return Voxel.FILLED;
+        }
+        //return (Voxel)Mathf.RoundToInt(PerlinNoise.Perlin(x, y, z)); ;
     }
 }
