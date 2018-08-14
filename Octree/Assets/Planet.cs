@@ -6,13 +6,15 @@ public class Planet
 {
     public float x, y, z;
     public float radius;
+    public float perlinScale;
 
-    public Planet(float _x, float _y, float _z, float _radius)
+    public Planet(float _x, float _y, float _z, float _radius, float _perlinScale)
     {
         x = _x;
         y = _y;
         z = _z;
         radius = _radius;
+        perlinScale = _perlinScale;
     }
 
     //public bool intersects(Vector3Int p)
@@ -25,10 +27,10 @@ public class Planet
         if (!CheckBounds(px, py, pz))
             return false;
         OffsetPositions(ref px, ref py, ref pz);
-        return (px * px + py * py + pz * pz) - radius * radius < 0;
+        return (px * px + py * py + pz * pz) - radius * radius < 0 && Mathf.RoundToInt(PerlinNoise.Perlin(px, py, pz, perlinScale)) > 0;
     }
 
-    protected bool CheckBounds(float px, float py, float pz)
+    protected virtual bool CheckBounds(float px, float py, float pz)
     {
         if (px > x + radius || px < x - radius)
         {

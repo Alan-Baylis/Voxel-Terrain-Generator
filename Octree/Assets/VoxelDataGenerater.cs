@@ -44,7 +44,7 @@ public class VoxelDataGenerater
 
     public Voxel DataAtPoint(float x, float y, float z)
     {
-        if ((new Planet(10, 4, 10, 0.25f).intersects(x, y, z) || new Belt(7, 4, 7, 4f, .5f).intersects(x, y, z) || new Planet(10, 4, 12, 2f).intersects(x, y, z)) && Mathf.RoundToInt(PerlinNoise.Perlin(x, y, z, 1.5f)) > 0)
+        if ((new Planet(7, 6, 10, .25f, 1.5f).intersects(x, y, z) || new Belt(7, 4, 7, 4f, 2f, .5f).intersects(x, y, z) || new Planet(7, 4, 7, 3f, 1f).intersects(x, y, z)))
         {
             return Voxel.EMPTY;
         }
