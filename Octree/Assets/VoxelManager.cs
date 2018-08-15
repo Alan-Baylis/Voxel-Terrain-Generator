@@ -66,10 +66,12 @@ public class VoxelManager : MonoBehaviour
                 for (int z = 0; z < worldSize; z++)
                 {
                     GameObject g = (GameObject)GameObject.Instantiate(Resources.Load("DefualtChunk"));
-                    g.GetComponent<MeshFilter>().mesh = vmg.MarchingCubes(vdm.GenerateData(chunkSize + 1, 2f, new Vector3Int(x * chunkSize, y * chunkSize, z * chunkSize)));
-
+                    Mesh m = vmg.MarchingCubes(vdm.GenerateData(chunkSize + 1, 2f, new Vector3Int(x * chunkSize, y * chunkSize, z * chunkSize)));
+                    g.GetComponent<MeshFilter>().mesh = m;
+                    g.GetComponent<MeshCollider>().sharedMesh = m;
                     g.transform.parent = terrain;
                     g.transform.position = new Vector3(x * chunkSize - 1, y * chunkSize - 1, z * chunkSize - 1);
+                    g.name = string.Format("X: {0}, Y:{1}, Z{2}", x, y, z);
 
                 }
         s.Stop();

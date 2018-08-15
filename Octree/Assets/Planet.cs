@@ -1,20 +1,30 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Planet
 {
-    public float x, y, z;
+    public Vector3 position;
     public float radius;
-    public float perlinScale;
+    public delegate bool TerrainFeature(Vector3 pos);
+    public TerrainFeature terrainFeatures = delegate (Vector3 pos) { return false; };
 
-    public Planet(float _x, float _y, float _z, float _radius, float _perlinScale)
+    public Planet(Vector3 pos, float _radius)
     {
-        x = _x;
-        y = _y;
-        z = _z;
+        Setup(pos, _radius);
+    }
+
+    public Planet(Vector3 pos, float _radius, TerrainFeature t)
+    {
+        Setup(pos, _radius);
+        terrainFeatures = t;
+    }
+
+    void Setup(Vector3 pos, float _radius)
+    {
+        position = pos;
         radius = _radius;
-        perlinScale = _perlinScale;
     }
 
     //public bool intersects(Vector3Int p)
@@ -22,25 +32,25 @@ public class Planet
     //    return ((p.x - x) * (p.x - x) + (p.y - y) * (p.y - y) + (p.z - z) * (p.z - z)) - radius * radius > 0;
     //}
 
-    public virtual bool intersects(float px, float py, float pz)
+    public virtual bool intersects(Vector3 p)
     {
-        if (!CheckBounds(px, py, pz))
+        if (!CheckBounds(p))
             return false;
-        OffsetPositions(ref px, ref py, ref pz);
-        return (px * px + py * py + pz * pz) - radius * radius < 0 && Mathf.RoundToInt(PerlinNoise.Perlin(px, py, pz, perlinScale)) > 0;
+        OffsetPositions(ref p);
+        return (p.x * p.x + p.y * p.y + p.z * p.z) - radius * radius < 0 && terrainFeatures(p);
     }
 
-    protected virtual bool CheckBounds(float px, float py, float pz)
+    protected virtual bool CheckBounds(Vector3 p)
     {
-        if (px > x + radius || px < x - radius)
+        if (p.x >position.x + radius || p.x <position.x - radius)
         {
             return false;
         }
-        if (py > y + radius || py < y - radius)
+        if (p.y >position.y + radius || p.y <position.y - radius)
         {
             return false;
         }
-        if (pz > z + radius || pz < z - radius)
+        if (p.z >position.z + radius || p.z <position.z - radius)
         {
             return false;
         }
@@ -48,11 +58,9 @@ public class Planet
         return true;
     }
 
-    protected void OffsetPositions(ref float px, ref float py, ref float pz)
+    protected void OffsetPositions(ref Vector3 p)
     {
-        px -= x;
-        py -= y;
-        pz -= z;
+        p -= position;
     }
 
 }

@@ -42,7 +42,7 @@ public class MeshGenerator : MonoBehaviour
                     flag = 0;
                     for (int c = 0; c < 8; c++)
                     {
-                        if (corners[c] == Voxel.FILLED)
+                        if (corners[c] == Voxel.EMPTY)
                             flag |= 1 << c;
                     }
 

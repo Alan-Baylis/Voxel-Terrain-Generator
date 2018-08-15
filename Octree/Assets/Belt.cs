@@ -4,35 +4,42 @@ using UnityEngine;
 
 public class Belt : Planet
 {
-    public float innerRadius;
-    public Belt(float _x, float _y, float _z, float _radius, float _perlinScale, float _innerRadius) : base(_x, _y, _z, _radius, _perlinScale)
+    public float minorRadius;
+
+    public Belt(Vector3 pos, float _majorRadius, float _minorRadius) : base(pos, _majorRadius)
     {
-        innerRadius = _innerRadius;
+        minorRadius = _minorRadius;
     }
 
-    public override bool intersects(float px, float py, float pz)
+    public Belt(Vector3 pos, float _majorRadius, float _minorRadius, TerrainFeature t) : base(pos, _majorRadius)
     {
-        if (!CheckBounds(px, py, pz))
+        minorRadius = _minorRadius;
+        terrainFeatures = t;
+    }
+
+    public override bool intersects(Vector3 p)
+    {
+        if (!CheckBounds(p))
             return false;
 
-        OffsetPositions(ref px, ref py, ref pz);
-        float plyA = radius - Mathf.Sqrt(px * px + pz * pz);
+        OffsetPositions(ref p);
+        float plyA = radius - Mathf.Sqrt(p.x * p.x + p.z * p.z);
 
-        return (plyA * plyA + py * py) - innerRadius * innerRadius < 0 && Mathf.RoundToInt(PerlinNoise.Perlin(px, py, pz, perlinScale)) > 0;
+        return (plyA * plyA + p.y * p.y) - minorRadius * minorRadius < 0 && terrainFeatures(p);
     }
 
-    protected override bool CheckBounds(float px, float py, float pz)
+    protected override bool CheckBounds(Vector3 p)
     {
-        float radius = this.radius + innerRadius;
-        if (px > x + radius || px < x - radius)
+        float radius = this.radius + minorRadius;
+        if (p.x > position.x + radius || p.x < position.x - radius)
         {
             return false;
         }
-        if (py > y + radius || py < y - radius)
+        if (p.y > position.y + radius || p.y < position.y - radius)
         {
             return false;
         }
-        if (pz > z + radius || pz < z - radius)
+        if (p.z > position.z + radius || p.z < position.z - radius)
         {
             return false;
         }
