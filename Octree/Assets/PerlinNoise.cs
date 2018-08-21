@@ -39,7 +39,7 @@ public class PerlinNoise
         //return Mathf.PerlinNoise(x - Mathf.PerlinNoise(z, y), y + Mathf.PerlinNoise(z, x));
         // Phallic terrain return Mathf.PerlinNoise(x, Mathf.PerlinNoise(y, z));
 
-        return (float)OctavePerlin(x, y, z, 2, 1);
+        return (float)_perlin(x, y, z);
 
     }
 
@@ -85,12 +85,7 @@ public class PerlinNoise
 
     double _perlin(double x, double y, double z)
     {
-        if (repeat > 0)
-        {                                   // If we have any repeat on, change the coordinates to their "local" repetitions
-            x = x % repeat;
-            y = y % repeat;
-            z = z % repeat;
-        }
+
 
         int xi = (int)x & 255;                              // Calculate the "unit cube" that the point asked will be located in
         int yi = (int)y & 255;                              // The left bound is ( |_x_|,|_y_|,|_z_| ) and the right bound is that
@@ -99,6 +94,7 @@ public class PerlinNoise
         double yf = y - (int)y;
 
         double zf = z - (int)z;
+
         double u = fade(xf);
         double v = fade(yf);
         double w = fade(zf);
@@ -130,7 +126,13 @@ public class PerlinNoise
                       u);
         y2 = lerp(x1, x2, v);
 
-        return (lerp(y1, y2, w) + 1) / 2;                       // For convenience we bound it to 0 - 1 (theoretical min/max before is -1 - 1)
+        return lerp(y1, y2, w);
+    }
+
+    double _clampedPerlin(double x, double y, double z)
+    {
+        return (_perlin(x, y, z) + 1) / 2;                       // For convenience we bound it to 0 - 1 (theoretical min/max before is -1 - 1)
+
     }
 
     public int inc(int num)

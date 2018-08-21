@@ -18,9 +18,11 @@ public class MeshGenerator : MonoBehaviour
         }
     }
 
-    public Mesh MarchingCubes(Voxel[,,] data)
+    public Mesh MarchingCubes(int[,,] data)
     {
         List<Vector3> _verts = new List<Vector3>();
+        List<Color> _col = new List<Color>();
+
         List<int> _tris = new List<int>();
         int triCount = 0;
 
@@ -37,12 +39,12 @@ public class MeshGenerator : MonoBehaviour
                         //Debug.Log(string.Format("{0} , {1}, {2}", i, j, k));
                     }
                     Vector3 startPos = new Vector3(i, j, k);
-                    Voxel[] corners = CubeCorners(data, i, j, k);
+                    int[] corners = CubeCorners(data, i, j, k);
                     //0-7 Control Nodes
                     flag = 0;
                     for (int c = 0; c < 8; c++)
                     {
-                        if (corners[c] == Voxel.EMPTY)
+                        if (((Voxel)corners[c]).opaque)
                             flag |= 1 << c;
                     }
 
@@ -76,7 +78,7 @@ public class MeshGenerator : MonoBehaviour
 
                             _verts.Add(startPos + (edgeVert1 + edgeVert2) * 0.5f);
                             _tris.Add(triCount++);
-
+                            _col.Add(((Voxel)data[i, j, k]).color);
 
                         }
 
@@ -86,6 +88,7 @@ public class MeshGenerator : MonoBehaviour
         Mesh m = new Mesh();
         m.vertices = _verts.ToArray();
         m.triangles = _tris.ToArray();
+        m.colors = _col.ToArray();
         m.RecalculateNormals();
         if (m.vertexCount > 65535)
         {
@@ -94,9 +97,9 @@ public class MeshGenerator : MonoBehaviour
         return m;
     }
 
-    Voxel[] CubeCorners(Voxel[,,] data, int i, int j, int k)
+    int[] CubeCorners(int[,,] data, int i, int j, int k)
     {
-        Voxel[] corners = new Voxel[8];
+        int[] corners = new int[8];
 
         corners[0] = GetCubeCorner(data, i, j, k);
         corners[1] = GetCubeCorner(data, i + 1, j, k);
@@ -111,7 +114,7 @@ public class MeshGenerator : MonoBehaviour
         return corners;
     }
 
-    Voxel GetCubeCorner(Voxel[,,] data, int i, int j, int k)
+    int GetCubeCorner(int[,,] data, int i, int j, int k)
     {
         try
         {
@@ -120,7 +123,7 @@ public class MeshGenerator : MonoBehaviour
         catch (System.Exception)
         {
             Debug.LogError(string.Format("Cube corner out of bounds: {0} {1} {2}", i, j, k));
-            return Voxel.EMPTY;
+            return 0;
         }
     }
 
@@ -425,7 +428,7 @@ public class MeshGenerator : MonoBehaviour
         {
 
             //Debug.Log(" at Mesh " + node.data);
-            if (!Meshes.ContainsKey(node) && node.data.Equals(Voxel.FILLED))
+            if (!Meshes.ContainsKey(node) && node.data.opaque)
             {
                 Meshes.Add(node, GenerateCube(node.pos, node.halfSize * 2f));
             }

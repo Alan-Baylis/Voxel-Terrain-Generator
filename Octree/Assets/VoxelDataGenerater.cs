@@ -8,12 +8,12 @@ public class VoxelDataGenerater
 
     public VoxelDataGenerater()
     {
-        planets.Add(new Planet(new Vector3(3, 2, 3), 2f, Perlin(1f, 0.2f)));
-        planets.Add(new Belt(  new Vector3(3, 2, 3), 4f, 0.1f, Perlin(2f, 0.7f)));
-        planets.Add(new Belt  (new Vector3(3, 2, 3), 6f, 0.1f, Perlin(5f, 0.7f)));
+        //planets.Add(new Planet(new Vector3(3, 2, 3), 2f, Perlin(1f, 0.2f)));
+        //planets.Add(new Belt(  new Vector3(3, 2, 3), 4f, 0.1f, Perlin(2f, 0.7f)));
+        //planets.Add(new Belt  (new Vector3(3, 2, 3), 6f, 0.1f, Perlin(5f, 0.7f)));
 
+        planets.Add(new GroundPlanet(new Vector3(3, 2, 3), 6f, Perlin(5f, 0.7f)));
 
-        //planets.Add(new Planet(new Vector3(0, 0, 0), 5f, Perlin(0.5f, 0.5f)));
 
     }
 
@@ -33,7 +33,7 @@ public class VoxelDataGenerater
         float halfSize = OctreeNode.getRoot.halfSize;
         for (int i = 0; i < 8; i++)
         {
-            data[i] = DataAtPoint(childPositions[i].x, childPositions[i].y, childPositions[i].z);
+            //data[i] = DataAtPoint(childPositions[i].x, childPositions[i].y, childPositions[i].z);
 
             //data[i] = (Voxel)((childPositions[i].y < Mathf.Sin(childPositions[i].x) * OctreeNode.getRoot.halfSize) ? 0 : 1);
 
@@ -42,10 +42,10 @@ public class VoxelDataGenerater
         return data;
     }
 
-    public Voxel[,,] GenerateData(int size, float scale, Vector3Int startPos)
+    public int[,,] GenerateData(int size, float scale, Vector3Int startPos)
     {
 
-        Voxel[,,] data = new Voxel[size, size, size]; ;
+        int[,,] data = new int[size, size, size]; ;
         for (int i = 0; i < size; i++)
         {
             for (int j = 0; j < size; j++)
@@ -60,15 +60,16 @@ public class VoxelDataGenerater
         return data;
     }
 
-    public Voxel DataAtPoint(float x, float y, float z)
+    public int DataAtPoint(float x, float y, float z)
     {
         if (planets.TrueForAll(p => !p.intersects(new Vector3(x, y, z))))
         {
-            return Voxel.EMPTY;
+            return Voxel.EMPTY.Id;
         }
         else
         {
-            return Voxel.FILLED;
+            return Voxel.FILLED.Id;
+
         }
         //return (Voxel)Mathf.RoundToInt(PerlinNoise.Perlin(x, y, z)); ;
     }

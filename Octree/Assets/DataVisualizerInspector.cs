@@ -22,7 +22,7 @@ public class DataVisualizerInspector : Editor
                 {
 
                     //Debug.Log(string.Format("x{0},y{1},z{2}", i, j, k));
-                    dv.testData[k, j, i] = (Voxel)((GUILayout.Toggle(dv.testData[k, j, i] == Voxel.FILLED, "")) ? 1 : 0);
+                    dv.testData[k, j, i] = GUILayout.Toggle(((Voxel)dv.testData[k, j, i]).opaque, "") ? Voxel.FILLED.Id : Voxel.EMPTY.Id;
                 }
             }
             GUILayout.EndHorizontal();

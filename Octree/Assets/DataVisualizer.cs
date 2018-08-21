@@ -11,27 +11,27 @@ public class DataVisualizer : MonoBehaviour
     public int DisplaySize;
     public float scale = 1f;
 
-    Voxel[,,] data;
+    int[,,] data;
     GameObject[,,] visuals;
     VoxelDataGenerater vdm = new VoxelDataGenerater();
 
     public Transform debug;
     public MeshGenerator vmg;
-    delegate Voxel[,,] GenerateData();
+    delegate int[,,] GenerateData();
     GenerateData genData;
 
     public MeshFilter mf;
     public bool showScalarField = false;
     public bool useTestData = false;
-    public Voxel[,,] testData = new Voxel[2, 2, 2]
+    public int[,,] testData = new int[2, 2, 2]
                 {
                     {
-                        {(Voxel)0,(Voxel)0}, // 0-4
-                        {(Voxel)0,(Voxel)0}//3-7
+                        {0,0}, // 0-4
+                        {0,0}//3-7
                     },
                     {
-                        {(Voxel)0,(Voxel)0},//2-6
-                        {(Voxel)0,(Voxel)0}//1-5
+                        {0,0},//2-6
+                        {0,0}//1-5
                     }
                 };
 
@@ -82,7 +82,7 @@ public class DataVisualizer : MonoBehaviour
                 {
                     GameObject g = (GameObject)Instantiate(Resources.Load("DisplayCube"), new Vector3(i, j, k), Quaternion.identity, debug);
                     g.transform.localScale = new Vector3(1 / 10f, 1 / 10f, 1 / 10f);
-                    g.GetComponent<Renderer>().material.color = VoxelManager.GetVoxelColour(data[i, j, k]);
+                    g.GetComponent<Renderer>().material.color = ((Voxel)data[i, j, k]).color;
                     if (useTestData)
                     {
                         Vector3Int pos = new Vector3Int(i, j, k);
@@ -120,7 +120,7 @@ public class DataVisualizer : MonoBehaviour
         r.startWidth = 0.1f;
         r.endWidth = 0.1f;
 
-        r.material.color = VoxelManager.GetVoxelColour(Voxel.FILLED);
+        r.material.color = Voxel.FILLED.color;
     }
 
     public void ResetVisuals()

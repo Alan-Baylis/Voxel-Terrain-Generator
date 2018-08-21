@@ -3,14 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System.Diagnostics;
-
-public enum Voxel
-{
-
-    EMPTY,
-    FILLED
-}
-
+using Unity.Jobs;
+using Unity.Collections;
 
 public class VoxelManager : MonoBehaviour
 {
@@ -34,6 +28,9 @@ public class VoxelManager : MonoBehaviour
     public static MeshGenerator vmg;
     public MeshGenerator _vmg;
 
+    Dictionary<Vector3Int, int[,,]> chunks = new Dictionary<Vector3Int, int[,,]>();
+
+
     public Material debugrenMaterialNorm, debugrenMaterialHigh;
     public int maxGenerations = 3;
 
@@ -55,18 +52,38 @@ public class VoxelManager : MonoBehaviour
         OctreeNode.Init();
     }
 
+    public struct MyJob : IJob
+    {
+        public float a;
+        public float b;
+        public NativeArray<float> result;
+
+        public void Execute()
+        {
+            result[0] = a + b;
+        }
+    }
 
     void Start()
     {
+        NativeArray<int> d = new NativeArray<int>(1,Allocator.TempJob);
+        MyJob mj = new MyJob();
+        mj.a = 1;
+        mj.b = 2;
+        JobHandle j = mj.Schedule();
+        j.Complete();
 
         Stopwatch s = new Stopwatch();
+
+
         s.Start();
         for (int x = 0; x < worldSize; x++)
             for (int y = 0; y < worldSize; y++)
                 for (int z = 0; z < worldSize; z++)
                 {
                     GameObject g = (GameObject)GameObject.Instantiate(Resources.Load("DefualtChunk"));
-                    Mesh m = vmg.MarchingCubes(vdm.GenerateData(chunkSize + 1, 2f, new Vector3Int(x * chunkSize, y * chunkSize, z * chunkSize)));
+                    int[,,] data = vdm.GenerateData(chunkSize + 1, 2f, new Vector3Int(x * chunkSize, y * chunkSize, z * chunkSize));
+                    Mesh m = vmg.MarchingCubes(data);
                     g.GetComponent<MeshFilter>().mesh = m;
                     g.GetComponent<MeshCollider>().sharedMesh = m;
                     g.transform.parent = terrain;
@@ -74,9 +91,11 @@ public class VoxelManager : MonoBehaviour
                     g.name = string.Format("X: {0}, Y:{1}, Z{2}", x, y, z);
 
                 }
+
+
         s.Stop();
 
-        UnityEngine.Debug.Log(s.ElapsedMilliseconds.ToString());
+        UnityEngine.Debug.Log(string.Format("Time to Generate: {0} for {1}", s.ElapsedMilliseconds.ToString(), worldSize * worldSize * worldSize * chunkSize));
     }
 
 
@@ -121,20 +140,7 @@ public class VoxelManager : MonoBehaviour
         }
     }
 
-    public static Color GetVoxelColour(Voxel v)
-    {
-        switch (v)
-        {
-            case Voxel.FILLED:
-                return Color.magenta;
-            case Voxel.EMPTY:
-                return Color.blue;
 
-            default:
-                break;
-        }
-        return Color.white;
-    }
 
 
 }
