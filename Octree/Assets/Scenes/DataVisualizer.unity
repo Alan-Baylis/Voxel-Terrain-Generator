@@ -143,13 +143,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7670bd81d518e0c4b885fbc27a241af9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DisplaySize: 25
+  DisplaySize: 50
   scale: 1
   debug: {fileID: 888297220}
   vmg: {fileID: 365114850}
   mf: {fileID: 365114852}
   showScalarField: 0
   useTestData: 0
+  testData: 0000000000000000000000000000000000000000000000000000000000000000
 --- !u!114 &365114850
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -18,20 +18,20 @@ public class MeshGenerator : MonoBehaviour
         }
     }
 
-    public Mesh MarchingCubes(int[,,] data)
+    public void MarchingCubes(int[] data, int chunkSize, out Vector3[] verts, out int[] tris, out Color[] cols)
     {
         List<Vector3> _verts = new List<Vector3>();
         List<Color> _col = new List<Color>();
-
         List<int> _tris = new List<int>();
+
         int triCount = 0;
 
 
         //Debug.Log(string.Format("{0} , {1}, {2}", data.GetLength(0), data.GetLength(1), data.GetLength(2)));
         int flag = 0;
-        for (int i = 0; i < data.GetLength(0) - 1; i++)
-            for (int j = 0; j < data.GetLength(1) - 1; j++)
-                for (int k = 0; k < data.GetLength(2) - 1; k++)
+        for (int i = 0; i < chunkSize - 1; i++)
+            for (int j = 0; j < chunkSize - 1; j++)
+                for (int k = 0; k < chunkSize - 1; k++)
                 {
                     if (i > 55)
                     {
@@ -39,7 +39,7 @@ public class MeshGenerator : MonoBehaviour
                         //Debug.Log(string.Format("{0} , {1}, {2}", i, j, k));
                     }
                     Vector3 startPos = new Vector3(i, j, k);
-                    int[] corners = CubeCorners(data, i, j, k);
+                    int[] corners = CubeCorners(data, i, j, k, chunkSize);
                     //0-7 Control Nodes
                     flag = 0;
                     for (int c = 0; c < 8; c++)
@@ -78,47 +78,41 @@ public class MeshGenerator : MonoBehaviour
 
                             _verts.Add(startPos + (edgeVert1 + edgeVert2) * 0.5f);
                             _tris.Add(triCount++);
-                            _col.Add(((Voxel)data[i, j, k]).color);
+                            _col.Add(((Voxel)data[VoxelManager.getIndex(i, j, k, chunkSize)]).color);
 
                         }
 
                     }
                 }
 
-        Mesh m = new Mesh();
-        m.vertices = _verts.ToArray();
-        m.triangles = _tris.ToArray();
-        m.colors = _col.ToArray();
-        m.RecalculateNormals();
-        if (m.vertexCount > 65535)
-        {
-            Debug.Log("Hit mesh vertex limit");
-        }
-        return m;
+        verts = _verts.ToArray();
+        tris = _tris.ToArray();
+        cols = _col.ToArray();
+
     }
 
-    int[] CubeCorners(int[,,] data, int i, int j, int k)
+    int[] CubeCorners(int[] data, int i, int j, int k, int chunkSize)
     {
         int[] corners = new int[8];
 
-        corners[0] = GetCubeCorner(data, i, j, k);
-        corners[1] = GetCubeCorner(data, i + 1, j, k);
-        corners[2] = GetCubeCorner(data, i + 1, j + 1, k);
-        corners[3] = GetCubeCorner(data, i, j + 1, k);
-        corners[4] = GetCubeCorner(data, i, j, k + 1);
-        corners[5] = GetCubeCorner(data, i + 1, j, k + 1);
-        corners[6] = GetCubeCorner(data, i + 1, j + 1, k + 1);
-        corners[7] = GetCubeCorner(data, i, j + 1, k + 1);
+        corners[0] = GetCubeCorner(data, chunkSize, i, j, k);
+        corners[1] = GetCubeCorner(data, chunkSize, i + 1, j, k);
+        corners[2] = GetCubeCorner(data, chunkSize, i + 1, j + 1, k);
+        corners[3] = GetCubeCorner(data, chunkSize, i, j + 1, k);
+        corners[4] = GetCubeCorner(data, chunkSize, i, j, k + 1);
+        corners[5] = GetCubeCorner(data, chunkSize, i + 1, j, k + 1);
+        corners[6] = GetCubeCorner(data, chunkSize, i + 1, j + 1, k + 1);
+        corners[7] = GetCubeCorner(data, chunkSize, i, j + 1, k + 1);
 
 
         return corners;
     }
 
-    int GetCubeCorner(int[,,] data, int i, int j, int k)
+    int GetCubeCorner(int[] data, int chunkSize, int i, int j, int k)
     {
         try
         {
-            return data[i, j, k];
+            return data[VoxelManager.getIndex(i, j, k, chunkSize)];
         }
         catch (System.Exception)
         {
@@ -126,6 +120,8 @@ public class MeshGenerator : MonoBehaviour
             return 0;
         }
     }
+
+
 
     // offsets from the minimal corner to 2 ends of the edges
     static readonly Vector3Int[,] edgeVertexOffsets = new Vector3Int[12, 2]

@@ -581,6 +581,6 @@ MonoBehaviour:
   maxGenerations: 8
   Player: {fileID: 282840814}
   debug: 1
-  worldSize: 5
+  worldSize: 1
   chunkSize: 30
   terrain: {fileID: 1131635355}

@@ -15,6 +15,9 @@ public class VoxelDataGenerater
         planets.Add(new GroundPlanet(new Vector3(3, 2, 3), 6f, Perlin(5f, 0.7f)));
 
 
+
+
+
     }
 
     Planet.TerrainFeature Perlin(float scale, float floor)
@@ -42,10 +45,9 @@ public class VoxelDataGenerater
         return data;
     }
 
-    public int[,,] GenerateData(int size, float scale, Vector3Int startPos)
+    public int[] GenerateData(int size, float scale, Vector3Int startPos)
     {
-
-        int[,,] data = new int[size, size, size]; ;
+        int[] data = new int[size * size * size]; ;
         for (int i = 0; i < size; i++)
         {
             for (int j = 0; j < size; j++)

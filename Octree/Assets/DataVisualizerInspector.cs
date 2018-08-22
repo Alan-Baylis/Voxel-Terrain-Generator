@@ -12,17 +12,18 @@ public class DataVisualizerInspector : Editor
     void ApplyVertexToggle()
     {
         GUILayout.Label("Test Data Vertices");
-        for (int i = 0; i < dv.testData.GetLength(0); i++)
+        for (int i = 0; i < dv.DisplaySize; i++)
         {
             GUILayout.BeginHorizontal(i.ToString(), GUILayout.Height(10));
 
-            for (int j = 0; j < dv.testData.GetLength(1); j++)
+            for (int j = 0; j < dv.DisplaySize; j++)
             {
-                for (int k = 0; k < dv.testData.GetLength(2); k++)
+                for (int k = 0; k < dv.DisplaySize ; k++)
                 {
 
                     //Debug.Log(string.Format("x{0},y{1},z{2}", i, j, k));
-                    dv.testData[k, j, i] = GUILayout.Toggle(((Voxel)dv.testData[k, j, i]).opaque, "") ? Voxel.FILLED.Id : Voxel.EMPTY.Id;
+                    int index = VoxelManager.getIndex(k, j, i, dv.DisplaySize);
+                    dv.testData[index] = GUILayout.Toggle(((Voxel)dv.testData[index]).opaque, "") ? Voxel.FILLED.Id : Voxel.EMPTY.Id;
                 }
             }
             GUILayout.EndHorizontal();

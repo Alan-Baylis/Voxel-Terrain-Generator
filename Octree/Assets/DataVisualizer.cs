@@ -11,28 +11,25 @@ public class DataVisualizer : MonoBehaviour
     public int DisplaySize;
     public float scale = 1f;
 
-    int[,,] data;
+    int[] data;
     GameObject[,,] visuals;
     VoxelDataGenerater vdm = new VoxelDataGenerater();
 
     public Transform debug;
     public MeshGenerator vmg;
-    delegate int[,,] GenerateData();
+    delegate int[] GenerateData();
     GenerateData genData;
 
     public MeshFilter mf;
     public bool showScalarField = false;
     public bool useTestData = false;
-    public int[,,] testData = new int[2, 2, 2]
+    public int[] testData = new int[8]
                 {
-                    {
-                        {0,0}, // 0-4
-                        {0,0}//3-7
-                    },
-                    {
-                        {0,0},//2-6
-                        {0,0}//1-5
-                    }
+                        0,0, // 0-4
+                        0,0//3-7
+                    ,
+                        0,0,//2-6
+                        0,0//1-5
                 };
 
     private void Awake()
@@ -53,7 +50,7 @@ public class DataVisualizer : MonoBehaviour
         }
         else
         {
-            genData = () => vdm.GenerateData(DisplaySize, scale, Vector3Int.zero);
+            genData = () => vdm.GenerateData(DisplaySize, 2f, Vector3Int.zero);
         }
 
         data = genData();
@@ -63,9 +60,13 @@ public class DataVisualizer : MonoBehaviour
             DisplayData();
         }
 
+        Vector3[] verts;
+        int[] tris;
+        Color[] cols;
 
+        vmg.MarchingCubes(data, DisplaySize, out verts, out tris, out cols);
+        mf.mesh = VoxelManager.vm.MeshFromData(verts, tris, cols);
 
-        mf.mesh = vmg.MarchingCubes(data);
 
     }
 
@@ -82,7 +83,7 @@ public class DataVisualizer : MonoBehaviour
                 {
                     GameObject g = (GameObject)Instantiate(Resources.Load("DisplayCube"), new Vector3(i, j, k), Quaternion.identity, debug);
                     g.transform.localScale = new Vector3(1 / 10f, 1 / 10f, 1 / 10f);
-                    g.GetComponent<Renderer>().material.color = ((Voxel)data[i, j, k]).color;
+                    g.GetComponent<Renderer>().material.color = ((Voxel)data[VoxelManager.getIndex(i, j, k, DisplaySize)]).color;
                     if (useTestData)
                     {
                         Vector3Int pos = new Vector3Int(i, j, k);
