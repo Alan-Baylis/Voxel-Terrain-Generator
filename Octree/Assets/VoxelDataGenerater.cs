@@ -54,7 +54,7 @@ public class VoxelDataGenerater
             {
                 for (int k = 0; k < size; k++)
                 {
-                    data[i, j, k] = DataAtPoint((i + startPos.x) / (float)size * scale, (j + startPos.y) / (float)size * scale, (k + startPos.z) / (float)size * scale);
+                    data[VoxelManager.getIndex(i, j, k, size)] = DataAtPoint((i + startPos.x) / (float)size * scale, (j + startPos.y) / (float)size * scale, (k + startPos.z) / (float)size * scale);
                 }
             }
         }
