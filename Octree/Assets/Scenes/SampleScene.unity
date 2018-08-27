@@ -574,6 +574,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _vmg: {fileID: 1868321392}
+  generationJobQouta: 10
   debugrenMaterialNorm: {fileID: 2100000, guid: de6725bc81c559345b5437da74a54d37,
     type: 2}
   debugrenMaterialHigh: {fileID: 2100000, guid: de9e77c24ca428e4aa00c480f54833b8,
@@ -581,7 +582,7 @@ MonoBehaviour:
   maxGenerations: 8
   Player: {fileID: 282840814}
   debug: 1
-  worldSize: 10
+  worldSize: 2
   chunkSize: 30
   terrain: {fileID: 1131635355}
   maxVerts: 65535

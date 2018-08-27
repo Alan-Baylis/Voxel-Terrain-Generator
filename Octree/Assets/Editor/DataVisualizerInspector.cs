@@ -5,8 +5,10 @@ using UnityEngine;
 
 [CustomEditor(typeof(DataVisualizer))]
 
+#if UNITY_EDITOR
 public class DataVisualizerInspector : Editor
 {
+
     DataVisualizer dv;
 
     void ApplyVertexToggle()
@@ -30,7 +32,7 @@ public class DataVisualizerInspector : Editor
         }
     }
 
-  
+
 
     void OnEnable()
     {
@@ -70,3 +72,4 @@ public class DataVisualizerInspector : Editor
     }
 
 }
+#endif

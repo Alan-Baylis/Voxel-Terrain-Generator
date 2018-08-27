@@ -31,7 +31,11 @@ public class VoxelManager : MonoBehaviour
     public MeshGenerator _vmg;
 
     //Dictionary<Vector3Int, int[]> chunks = new Dictionary<Vector3Int, int[]>();
-    Queue<GenerationThread> generatinonJobs = new Queue<GenerationThread>();
+    Queue<GenerationThread> generationThreads = new Queue<GenerationThread>();
+    Queue<GenerationThread> generationThreadsIdle = new Queue<GenerationThread>();
+    Queue<Vector3Int> chunksToGenerate = new Queue<Vector3Int>();
+
+    public int generationJobQouta = 10;
 
     public Material debugrenMaterialNorm, debugrenMaterialHigh;
     public int maxGenerations = 3;
@@ -72,6 +76,7 @@ public class VoxelManager : MonoBehaviour
                 tris[i] = _tris[i];
             }
 
+            UnityEngine.Debug.Log("In thread" + verticesLength);
         }
     }
 
@@ -98,7 +103,59 @@ public class VoxelManager : MonoBehaviour
 
         //GenerateWorldTest(s, writer);
         s.Start();
-        GenerateWorld();
+
+        GenerationThread t = new GenerationThread();
+        t.job.chunkSize = chunkSize + 1;
+        t.job.vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob);
+        t.job.tris = new NativeArray<int>(maxVerts, Allocator.TempJob);
+        t.job.col = new NativeArray<Color>(maxVerts, Allocator.TempJob);
+        t.job.x = 0;
+        t.job.y = 0;
+        t.job.z = 0;
+        t.jobHandle = t.job.Schedule();
+        t.jobHandle.Complete();
+        UnityEngine.Debug.Log(t.jobHandle.IsCompleted);
+        UnityEngine.Debug.Log(t.job.verticesLength);
+        UnityEngine.Debug.Log(t.job.vertices.Count());
+
+
+        //for (int x = 0; x < worldSize; x++)
+        //    for (int y = 0; y < worldSize; y++)
+        //        for (int z = 0; z < worldSize; z++)
+        //        {
+
+        //            t.job.x = x;
+        //            t.job.y = y;
+        //            t.job.z = z;
+        //            t.jobHandle = t.job.Schedule();
+        //            t.jobHandle.Complete();
+        //            GenerationThreadJob j = t.job;
+
+        //            int[] _tris = new int[j.trisLength];
+        //            Color[] _cols = new Color[j.verticesLength];
+        //            Vector3[] _verts = new Vector3[j.verticesLength];
+
+        //            for (int i = 0; i < j.verticesLength; i++)
+        //            {
+        //                _verts[i] = j.vertices[i];
+        //                _cols[i] = j.col[i];
+        //            }
+        //            for (int i = 0; i < j.trisLength; i++)
+        //            {
+        //                _tris[i] = j.tris[i];
+        //            }
+
+        //            UnityEngine.Debug.Log(j.verticesLength);
+        //            AddMeshToWorld(MeshFromData(_verts, _tris, _cols), j.x, j.y, j.z);
+
+        //        }
+
+        t.job.vertices.Dispose();
+        t.job.tris.Dispose();
+        t.job.col.Dispose();
+
+
+        //GenerateWorld();
         s.Stop();
 
         StreamWriter writer = new StreamWriter("Assets/Resources/TimeToGenerate.txt", true);
@@ -121,13 +178,19 @@ public class VoxelManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        foreach (var item in generatinonJobs)
+        foreach (var item in generationThreads)
         {
-            generatinonJobs.Dequeue();
+            item.jobHandle.Complete();
             item.job.vertices.Dispose();
             item.job.tris.Dispose();
             item.job.col.Dispose();
 
+        }
+        foreach (var item in generationThreadsIdle)
+        {
+            item.job.vertices.Dispose();
+            item.job.tris.Dispose();
+            item.job.col.Dispose();
         }
     }
 
@@ -159,11 +222,11 @@ public class VoxelManager : MonoBehaviour
 
     //---------------------------------------------------------------------------------------------
 
-    void GenerationUpdate()
+    void UpdateGenerationOnThreads()
     {
-        if (generatinonJobs.Count > 0)
+        if (generationThreads.Count > 0)
         {
-            GenerationThread t = generatinonJobs.Dequeue();
+            GenerationThread t = generationThreads.Dequeue();
             t.jobHandle.Complete();
 
             GenerationThreadJob j = t.job;
@@ -182,46 +245,73 @@ public class VoxelManager : MonoBehaviour
                 _tris[i] = j.tris[i];
             }
 
-            AddMeshToWorld(MeshFromData(j.vertices.ToArray(), j.tris.ToArray(), j.col.ToArray()), j.x, j.y, j.z);
+            AddMeshToWorld(MeshFromData(_verts, _tris, _cols), j.x, j.y, j.z);
+            generationThreadsIdle.Enqueue(t);
+        }
 
-            j.vertices.Dispose();
-            j.tris.Dispose();
-            j.col.Dispose();
-
-            if (generatinonJobs.Count > 0)
+        if (chunksToGenerate.Count > 0)
+        {
+            if (generationThreadsIdle.Count > 0)
             {
-                Invoke("GenerationUpdate", 0.1f);
+                Vector3Int pos = chunksToGenerate.Dequeue();
+                GenerationThread t = generationThreadsIdle.Dequeue();
+                ScheduleGenerationThread(t, pos.x, pos.y, pos.z);
+                generationThreads.Enqueue(t);
             }
+            Invoke("UpdateGenerationOnThreads", 0.1f);
         }
     }
 
-    void CreateGenerationOnThreads(int x, int y, int z)
+    void ScheduleGenerationThread(GenerationThread g, int x, int y, int z)
     {
-        GenerationThreadJob t = new GenerationThreadJob();
-        t.chunkSize = chunkSize + 1;
-        t.vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob);
-        t.tris = new NativeArray<int>(maxVerts, Allocator.TempJob);
-        t.col = new NativeArray<Color>(maxVerts, Allocator.TempJob);
+        g.job.x = x;
+        g.job.y = y;
+        g.job.z = z;
+        g.jobHandle = g.job.Schedule();
 
-        t.x = x;
-        t.y = y;
-        t.z = z;
-
-        GenerationThread gt = new GenerationThread();
-        gt.job = t;
-        gt.jobHandle = t.Schedule();
-        generatinonJobs.Enqueue(gt);
     }
 
-    void CreateGeneration(int x, int y, int z)
+    void InitGenerationOnThreads()
+    {
+        for (int i = 0; i < generationJobQouta; i++)
+        {
+            GenerationThreadJob t = new GenerationThreadJob();
+            t.chunkSize = chunkSize + 1;
+            t.vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob);
+            t.tris = new NativeArray<int>(maxVerts, Allocator.TempJob);
+            t.col = new NativeArray<Color>(maxVerts, Allocator.TempJob);
+
+            GenerationThread gt = new GenerationThread();
+            gt.job = t;
+            gt.job.Schedule();
+            generationThreads.Enqueue(gt);
+        }
+
+    }
+
+    void CreateGeneration()
     {
         int[] _tris;
         Color[] _cols;
         Vector3[] _verts;
 
-        vmg.MarchingCubes(vdm.GenerateData(chunkSize + 1, 2f, new Vector3Int(x * (chunkSize), y * (chunkSize), z * (chunkSize))), chunkSize + 1, out _verts, out _tris, out _cols);
+        for (int i = 0; i < chunksToGenerate.Count; i++)
+        {
+            Vector3Int pos = chunksToGenerate.Dequeue();
+            int x = pos.x;
+            int y = pos.y;
+            int z = pos.z;
 
-        AddMeshToWorld(MeshFromData(_verts, _tris, _cols), x, y, z);
+            vmg.MarchingCubes(vdm.GenerateData(chunkSize + 1, 2f, new Vector3Int(x * (chunkSize), y * (chunkSize), z * (chunkSize))), chunkSize + 1, out _verts, out _tris, out _cols);
+
+            AddMeshToWorld(MeshFromData(_verts, _tris, _cols), x, y, z);
+        }
+    }
+
+    void CreateGenerationOnThreads()
+    {
+        InitGenerationOnThreads();
+        UpdateGenerationOnThreads();
     }
 
     void GenerateWorldTest()
@@ -245,10 +335,11 @@ public class VoxelManager : MonoBehaviour
             for (int y = 0; y < worldSize; y++)
                 for (int z = 0; z < worldSize; z++)
                 {
-                    //CreateGeneration(x,y,z);
-                    CreateGenerationOnThreads(x, y, z);
+                    chunksToGenerate.Enqueue(new Vector3Int(x, y, z));
                 }
-        GenerationUpdate();
+
+        //CreateGeneration();
+        CreateGenerationOnThreads();
     }
 
     public Mesh MeshFromData(Vector3[] verts, int[] tris, Color[] col)
