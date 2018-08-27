@@ -52,10 +52,14 @@ public class VoxelManager : MonoBehaviour
     public struct GenerationThreadJob : IJob
     {
         public int chunkSize, x, y, z;
-        public int verticesLength, trisLength;
 
+        [WriteOnly]
+        public NativeArray<int> lengths;
+        [WriteOnly]
         public NativeArray<Vector3> vertices;
+        [WriteOnly]
         public NativeArray<int> tris;
+        [WriteOnly]
         public NativeArray<Color> col;
 
         public void Execute()
@@ -64,19 +68,17 @@ public class VoxelManager : MonoBehaviour
             Color[] _cols;
             Vector3[] _verts;
             vmg.MarchingCubes(vdm.GenerateData(chunkSize, 2f, new Vector3Int(x * (chunkSize - 1), y * (chunkSize - 1), z * (chunkSize - 1))), chunkSize, out _verts, out _tris, out _cols);
-            verticesLength = _verts.Length;
-            for (int i = 0; i < verticesLength; i++)
+            lengths[0] = _verts.Length;
+            for (int i = 0; i < _verts.Length; i++)
             {
                 vertices[i] = _verts[i];
                 col[i] = _cols[i];
             }
-            trisLength = _tris.Length;
-            for (int i = 0; i < trisLength; i++)
+            lengths[1] = _tris.Length;
+            for (int i = 0; i < _tris.Length; i++)
             {
                 tris[i] = _tris[i];
             }
-
-            UnityEngine.Debug.Log("In thread" + verticesLength);
         }
     }
 
@@ -103,59 +105,7 @@ public class VoxelManager : MonoBehaviour
 
         //GenerateWorldTest(s, writer);
         s.Start();
-
-        GenerationThread t = new GenerationThread();
-        t.job.chunkSize = chunkSize + 1;
-        t.job.vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob);
-        t.job.tris = new NativeArray<int>(maxVerts, Allocator.TempJob);
-        t.job.col = new NativeArray<Color>(maxVerts, Allocator.TempJob);
-        t.job.x = 0;
-        t.job.y = 0;
-        t.job.z = 0;
-        t.jobHandle = t.job.Schedule();
-        t.jobHandle.Complete();
-        UnityEngine.Debug.Log(t.jobHandle.IsCompleted);
-        UnityEngine.Debug.Log(t.job.verticesLength);
-        UnityEngine.Debug.Log(t.job.vertices.Count());
-
-
-        //for (int x = 0; x < worldSize; x++)
-        //    for (int y = 0; y < worldSize; y++)
-        //        for (int z = 0; z < worldSize; z++)
-        //        {
-
-        //            t.job.x = x;
-        //            t.job.y = y;
-        //            t.job.z = z;
-        //            t.jobHandle = t.job.Schedule();
-        //            t.jobHandle.Complete();
-        //            GenerationThreadJob j = t.job;
-
-        //            int[] _tris = new int[j.trisLength];
-        //            Color[] _cols = new Color[j.verticesLength];
-        //            Vector3[] _verts = new Vector3[j.verticesLength];
-
-        //            for (int i = 0; i < j.verticesLength; i++)
-        //            {
-        //                _verts[i] = j.vertices[i];
-        //                _cols[i] = j.col[i];
-        //            }
-        //            for (int i = 0; i < j.trisLength; i++)
-        //            {
-        //                _tris[i] = j.tris[i];
-        //            }
-
-        //            UnityEngine.Debug.Log(j.verticesLength);
-        //            AddMeshToWorld(MeshFromData(_verts, _tris, _cols), j.x, j.y, j.z);
-
-        //        }
-
-        t.job.vertices.Dispose();
-        t.job.tris.Dispose();
-        t.job.col.Dispose();
-
-
-        //GenerateWorld();
+        GenerateWorld();
         s.Stop();
 
         StreamWriter writer = new StreamWriter("Assets/Resources/TimeToGenerate.txt", true);
@@ -181,6 +131,7 @@ public class VoxelManager : MonoBehaviour
         foreach (var item in generationThreads)
         {
             item.jobHandle.Complete();
+            item.job.lengths.Dispose();
             item.job.vertices.Dispose();
             item.job.tris.Dispose();
             item.job.col.Dispose();
@@ -188,6 +139,7 @@ public class VoxelManager : MonoBehaviour
         }
         foreach (var item in generationThreadsIdle)
         {
+            item.job.lengths.Dispose();
             item.job.vertices.Dispose();
             item.job.tris.Dispose();
             item.job.col.Dispose();
@@ -227,20 +179,20 @@ public class VoxelManager : MonoBehaviour
         if (generationThreads.Count > 0)
         {
             GenerationThread t = generationThreads.Dequeue();
+            GenerationThreadJob j = t.job;
             t.jobHandle.Complete();
 
-            GenerationThreadJob j = t.job;
 
-            int[] _tris = new int[j.trisLength];
-            Color[] _cols = new Color[j.verticesLength];
-            Vector3[] _verts = new Vector3[j.verticesLength];
+            int[] _tris = new int[j.lengths[1]];
+            Color[] _cols = new Color[j.lengths[0]];
+            Vector3[] _verts = new Vector3[j.lengths[0]];
 
-            for (int i = 0; i < j.verticesLength; i++)
+            for (int i = 0; i < j.lengths[0]; i++)
             {
                 _verts[i] = j.vertices[i];
                 _cols[i] = j.col[i];
             }
-            for (int i = 0; i < j.trisLength; i++)
+            for (int i = 0; i < j.lengths[1]; i++)
             {
                 _tris[i] = j.tris[i];
             }
@@ -255,20 +207,22 @@ public class VoxelManager : MonoBehaviour
             {
                 Vector3Int pos = chunksToGenerate.Dequeue();
                 GenerationThread t = generationThreadsIdle.Dequeue();
-                ScheduleGenerationThread(t, pos.x, pos.y, pos.z);
-                generationThreads.Enqueue(t);
+                generationThreads.Enqueue(ScheduleGenerationThread(t, pos.x, pos.y, pos.z));
             }
-            Invoke("UpdateGenerationOnThreads", 0.1f);
         }
+
+        if (chunksToGenerate.Count > 0 || generationThreads.Count > 0)
+            Invoke("UpdateGenerationOnThreads", 0.1f);
     }
 
-    void ScheduleGenerationThread(GenerationThread g, int x, int y, int z)
+    GenerationThread ScheduleGenerationThread(GenerationThread g, int x, int y, int z)
     {
         g.job.x = x;
         g.job.y = y;
         g.job.z = z;
         g.jobHandle = g.job.Schedule();
 
+        return g;
     }
 
     void InitGenerationOnThreads()
@@ -277,14 +231,28 @@ public class VoxelManager : MonoBehaviour
         {
             GenerationThreadJob t = new GenerationThreadJob();
             t.chunkSize = chunkSize + 1;
+            t.lengths = new NativeArray<int>(2, Allocator.TempJob);
             t.vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob);
             t.tris = new NativeArray<int>(maxVerts, Allocator.TempJob);
             t.col = new NativeArray<Color>(maxVerts, Allocator.TempJob);
-
             GenerationThread gt = new GenerationThread();
-            gt.job = t;
-            gt.job.Schedule();
-            generationThreads.Enqueue(gt);
+
+            if (chunksToGenerate.Count > 0)
+            {
+                Vector3Int p = chunksToGenerate.Dequeue();
+                t.x = p.x;
+                t.y = p.y;
+                t.z = p.z;
+
+                gt.job = t;
+                gt.jobHandle = gt.job.Schedule();
+                generationThreads.Enqueue(gt);
+            }
+            else
+            {
+                gt.job = t;
+                generationThreadsIdle.Enqueue(gt);
+            }
         }
 
     }

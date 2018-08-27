@@ -29,12 +29,12 @@ public abstract class Voxel : Enumeration
 
     private class EmptyVoxel : Voxel
     {
-        public EmptyVoxel() : base(0, "Empty", false, Color.blue) { }
+        public EmptyVoxel() : base(0, "Empty", false, Color.green) { }
     }
 
     private class FilledVoxel : Voxel
     {
-        public FilledVoxel() : base(1, "Filled", true, Color.magenta) { }
+        public FilledVoxel() : base(1, "Filled", true, Color.grey) { }
     }
 
     public static explicit operator Voxel(int v)
