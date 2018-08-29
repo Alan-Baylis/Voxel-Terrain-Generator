@@ -11,16 +11,31 @@ public class GroundPlanet : Planet
 
     }
 
-    int depth = 5;
-    public override bool intersects(Vector3 p)
+    int depth = 4;
+    public override Voxel VoxelAt(Vector3 p)
     {
-
-        float perlinHeight = VoxelManager.vm.worldSize / 2f;
+        float perlinHeight = VoxelManager.vm.worldSize.y / 1.5f + PerlinNoise.thisPerlin.Perlin(p.x, 0, p.z, 0.1f) * 10;
         for (int i = 1; i < depth; i++)
         {
-            perlinHeight += PerlinNoise.thisPerlin.Perlin(p.x, p.y, p.z, 1f / i) * i;
+            perlinHeight -= PerlinNoise.thisPerlin.Perlin(p.x, p.y, p.z, 1f / i) * i;
         }
-        return p.y > perlinHeight;
+
+        if (p.y < perlinHeight)
+        {
+            if (perlinHeight > 10)
+                return Voxel.SNOW;
+            else if (perlinHeight > 5)
+                return Voxel.DARKGRASS;
+            else return Voxel.FILLED;
+
+        }
+        else
+        {
+            return Voxel.EMPTY;
+
+        }
+
+
     }
 
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class VoxelDataGenerater
@@ -8,9 +9,9 @@ public class VoxelDataGenerater
 
     public VoxelDataGenerater()
     {
-        //planets.Add(new Planet(new Vector3(3, 2, 3), 2f, Perlin(1f, 0.2f)));
-        //planets.Add(new Belt(  new Vector3(3, 2, 3), 4f, 0.1f, Perlin(2f, 0.7f)));
-        //planets.Add(new Belt  (new Vector3(3, 2, 3), 6f, 0.1f, Perlin(5f, 0.7f)));
+        planets.Add(new Planet(new Vector3( 10, 8, 10), 2f, Perlin(1f, 0.2f)));
+        planets.Add(new Belt(new Vector3(   10, 8, 10), 4f, 0.1f, Perlin(2f, 0.7f)));
+        planets.Add(new Belt(new Vector3(   10, 8, 10), 6f, 0.1f, Perlin(5f, 0.7f)));
 
         planets.Add(new GroundPlanet(new Vector3(3, 2, 3), 6f, Perlin(5f, 0.7f)));
 
@@ -64,15 +65,18 @@ public class VoxelDataGenerater
 
     public int DataAtPoint(float x, float y, float z)
     {
-        if (planets.TrueForAll(p => !p.intersects(new Vector3(x, y, z))))
+        Vector3 pos = new Vector3(x, y, z);
+        Voxel v = Voxel.EMPTY;
+        foreach (var item in planets)
         {
-            return Voxel.EMPTY.Id;
+            v = item.VoxelAt(pos);
+            if (v.opaque)
+            {
+               return v.Id;
+            }
         }
-        else
-        {
-            return Voxel.FILLED.Id;
 
-        }
-        //return (Voxel)Mathf.RoundToInt(PerlinNoise.Perlin(x, y, z)); ;
+        return  Voxel.EMPTY.Id;
+
     }
 }

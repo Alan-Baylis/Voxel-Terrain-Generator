@@ -17,15 +17,14 @@ public class Belt : Planet
         terrainFeatures = t;
     }
 
-    public override bool intersects(Vector3 p)
+    public override Voxel VoxelAt(Vector3 p)
     {
         if (!CheckBounds(p))
-            return false;
-
+            return Voxel.EMPTY;
         OffsetPositions(ref p);
         float plyA = radius - Mathf.Sqrt(p.x * p.x + p.z * p.z);
 
-        return (plyA * plyA + p.y * p.y) - minorRadius * minorRadius < 0 && terrainFeatures(p);
+        return ((plyA * plyA + p.y * p.y) - minorRadius * minorRadius < 0  && terrainFeatures(p) ? Voxel.REDSAND : Voxel.EMPTY );
     }
 
     protected override bool CheckBounds(Vector3 p)

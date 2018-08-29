@@ -32,25 +32,25 @@ public class Planet
     //    return ((p.x - x) * (p.x - x) + (p.y - y) * (p.y - y) + (p.z - z) * (p.z - z)) - radius * radius > 0;
     //}
 
-    public virtual bool intersects(Vector3 p)
+    public virtual Voxel VoxelAt(Vector3 p)
     {
         if (!CheckBounds(p))
-            return false;
+            return Voxel.EMPTY;
         OffsetPositions(ref p);
-        return (p.x * p.x + p.y * p.y + p.z * p.z) - radius * radius < 0 && terrainFeatures(p);
+        return ((p.x * p.x + p.y * p.y + p.z * p.z) - radius * radius < 0 && terrainFeatures(p) ? Voxel.REDSAND : Voxel.EMPTY);
     }
 
     protected virtual bool CheckBounds(Vector3 p)
     {
-        if (p.x >position.x + radius || p.x <position.x - radius)
+        if (p.x > position.x + radius || p.x < position.x - radius)
         {
             return false;
         }
-        if (p.y >position.y + radius || p.y <position.y - radius)
+        if (p.y > position.y + radius || p.y < position.y - radius)
         {
             return false;
         }
-        if (p.z >position.z + radius || p.z <position.z - radius)
+        if (p.z > position.z + radius || p.z < position.z - radius)
         {
             return false;
         }

@@ -44,7 +44,7 @@ public class MeshGenerator : MonoBehaviour
                     flag = 0;
                     for (int c = 0; c < 8; c++)
                     {
-                        if (((Voxel)corners[c]).opaque)
+                        if (!((Voxel)corners[c]).opaque)
                             flag |= 1 << c;
                     }
 

@@ -35,17 +35,19 @@ public class VoxelManager : MonoBehaviour
     Queue<GenerationThread> generationThreadsIdle = new Queue<GenerationThread>();
     Queue<Vector3Int> chunksToGenerate = new Queue<Vector3Int>();
 
-    public int generationJobQouta = 10;
 
     public Material debugrenMaterialNorm, debugrenMaterialHigh;
-    public int maxGenerations = 3;
+    public int maxOctreeGenerations = 3;
 
     public Transform Player;
 
     public bool debug;
 
-    public int worldSize, chunkSize;
+    public Vector3Int worldSize;
+    public int chunkSize;
     public Transform terrain;
+    public int generationJobsQouta = 10;
+    public int generationJobsIdleQouta = 20;
 
     public int maxVerts = 65535;
 
@@ -102,7 +104,6 @@ public class VoxelManager : MonoBehaviour
     {
         Stopwatch s = new Stopwatch();
 
-
         //GenerateWorldTest(s, writer);
         s.Start();
         GenerateWorld();
@@ -110,8 +111,8 @@ public class VoxelManager : MonoBehaviour
 
         StreamWriter writer = new StreamWriter("Assets/Resources/TimeToGenerate.txt", true);
 
-        UnityEngine.Debug.Log(string.Format("Time to Generate: {0} for {1} vertices; chunkSize: {2}, worldSize: {3}", s.ElapsedMilliseconds.ToString(), Mathf.Pow(chunkSize * worldSize, 3), chunkSize, worldSize));
-        writer.WriteLine(string.Format("{0},{1},{2},{3}", s.ElapsedMilliseconds.ToString(), Mathf.Pow(chunkSize * worldSize, 3), chunkSize, worldSize));
+        UnityEngine.Debug.Log(string.Format("Time to Generate: {0} for {1} vertices; chunkSize: {2}, worldSize: {3}", s.ElapsedMilliseconds.ToString(), Mathf.Pow(chunkSize * worldSize.x, 3), chunkSize, worldSize.x));
+        writer.WriteLine(string.Format("{0},{1},{2},{3}", s.ElapsedMilliseconds.ToString(), Mathf.Pow(chunkSize * worldSize.x, 3), chunkSize, worldSize));
         writer.Dispose();
 
     }
@@ -176,7 +177,26 @@ public class VoxelManager : MonoBehaviour
 
     void UpdateGenerationOnThreads()
     {
-        if (generationThreads.Count > 0)
+        for (int i = 0; i < generationThreadsIdle.Count; i++)
+        {
+            if (chunksToGenerate.Count > 0)
+            {
+                Vector3Int pos = chunksToGenerate.Dequeue();
+                GenerationThread t = generationThreadsIdle.Dequeue();
+                generationThreads.Enqueue(ScheduleGenerationThread(t, pos.x, pos.y, pos.z));
+            }
+        }
+
+        LateUpdateGenerationOnThreads();
+
+
+        if (chunksToGenerate.Count > 0 || generationThreads.Count > 0)
+            Invoke("UpdateGenerationOnThreads", 0.1f);
+    }
+
+    void LateUpdateGenerationOnThreads()
+    {
+        for (int k = 0; k < generationJobsQouta && generationThreads.Count > 0; k++)
         {
             GenerationThread t = generationThreads.Dequeue();
             GenerationThreadJob j = t.job;
@@ -200,19 +220,6 @@ public class VoxelManager : MonoBehaviour
             AddMeshToWorld(MeshFromData(_verts, _tris, _cols), j.x, j.y, j.z);
             generationThreadsIdle.Enqueue(t);
         }
-
-        if (chunksToGenerate.Count > 0)
-        {
-            if (generationThreadsIdle.Count > 0)
-            {
-                Vector3Int pos = chunksToGenerate.Dequeue();
-                GenerationThread t = generationThreadsIdle.Dequeue();
-                generationThreads.Enqueue(ScheduleGenerationThread(t, pos.x, pos.y, pos.z));
-            }
-        }
-
-        if (chunksToGenerate.Count > 0 || generationThreads.Count > 0)
-            Invoke("UpdateGenerationOnThreads", 0.1f);
     }
 
     GenerationThread ScheduleGenerationThread(GenerationThread g, int x, int y, int z)
@@ -227,30 +234,41 @@ public class VoxelManager : MonoBehaviour
 
     void InitGenerationOnThreads()
     {
-        for (int i = 0; i < generationJobQouta; i++)
+        for (int i = 0; i < generationJobsIdleQouta; i++)
         {
-            GenerationThreadJob t = new GenerationThreadJob();
-            t.chunkSize = chunkSize + 1;
-            t.lengths = new NativeArray<int>(2, Allocator.TempJob);
-            t.vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob);
-            t.tris = new NativeArray<int>(maxVerts, Allocator.TempJob);
-            t.col = new NativeArray<Color>(maxVerts, Allocator.TempJob);
-            GenerationThread gt = new GenerationThread();
-
-            if (chunksToGenerate.Count > 0)
+            GenerationThreadJob t = new GenerationThreadJob
             {
-                Vector3Int p = chunksToGenerate.Dequeue();
-                t.x = p.x;
-                t.y = p.y;
-                t.z = p.z;
+                chunkSize = chunkSize + 1,
+                lengths = new NativeArray<int>(2, Allocator.TempJob),
+                vertices = new NativeArray<Vector3>(maxVerts, Allocator.TempJob),
+                tris = new NativeArray<int>(maxVerts, Allocator.TempJob),
+                col = new NativeArray<Color>(maxVerts, Allocator.TempJob)
+            };
+            GenerationThread gt = new GenerationThread
+            {
+                job = t
+            };
 
-                gt.job = t;
-                gt.jobHandle = gt.job.Schedule();
-                generationThreads.Enqueue(gt);
+            if (generationThreads.Count < generationJobsQouta)
+            {
+                if (chunksToGenerate.Count > 0)
+                {
+                    Vector3Int p = chunksToGenerate.Dequeue();
+                    t.x = p.x;
+                    t.y = p.y;
+                    t.z = p.z;
+
+                    gt.job = t;
+                    gt.jobHandle = gt.job.Schedule();
+                    generationThreads.Enqueue(gt);
+                }
+                else
+                {
+                    generationThreadsIdle.Enqueue(gt);
+                }
             }
             else
             {
-                gt.job = t;
                 generationThreadsIdle.Enqueue(gt);
             }
         }
@@ -293,15 +311,16 @@ public class VoxelManager : MonoBehaviour
 
             //chunks = new Dictionary<Vector3Int, int[]>();
 
-            worldSize++;
+            worldSize += Vector3Int.one;
+
         }
     }
 
     void GenerateWorld()
     {
-        for (int x = 0; x < worldSize; x++)
-            for (int y = 0; y < worldSize; y++)
-                for (int z = 0; z < worldSize; z++)
+        for (int x = 0; x < worldSize.x; x++)
+            for (int y = 0; y < worldSize.y; y++)
+                for (int z = 0; z < worldSize.z; z++)
                 {
                     chunksToGenerate.Enqueue(new Vector3Int(x, y, z));
                 }
@@ -345,7 +364,7 @@ public class VoxelManager : MonoBehaviour
 
     void UpdateGenerations()
     {
-        playerNode = OctreeNode.getRoot.CreateSubdivisionsWithItem(maxGenerations, Player.position);
+        playerNode = OctreeNode.getRoot.CreateSubdivisionsWithItem(maxOctreeGenerations, Player.position);
         Invoke("UpdateGrpahics", 0.4f);
         //UpdateGrpahics();
     }
