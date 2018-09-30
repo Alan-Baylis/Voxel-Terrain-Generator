@@ -349,7 +349,7 @@ public class VoxelManager : MonoBehaviour
     {
         GameObject g = (GameObject)Instantiate(Resources.Load("DefualtChunk"));
         g.GetComponent<MeshFilter>().mesh = m;
-        //g.GetComponent<MeshCollider>().sharedMesh = m;
+        g.GetComponent<MeshCollider>().sharedMesh = m;
         g.transform.parent = terrain;
         g.transform.position = new Vector3(x * chunkSize - 1, y * chunkSize - 1, z * chunkSize - 1);
         g.name = string.Format("X: {0}, Y:{1}, Z{2}", x, y, z);
