@@ -14,7 +14,7 @@ public class OctreeNode
         {
             if (_root == null)
             {
-                _root = new OctreeNode(null, Vector3.zero, 1024f, Voxel.FILLED, 0);
+                _root = new OctreeNode(null, Vector3.zero, 64f, Voxel.FILLED, 0);
             }
 
             return _root;
@@ -97,7 +97,7 @@ public class OctreeNode
 
     private void KillNode()
     {
-        VoxelManager.vmg.removeMesh.Add(this);
+        //VoxelManager.vmg.removeMesh.Add(this);
         GameObject.Destroy(GO);
     }
 
@@ -172,7 +172,7 @@ public class OctreeNode
             if (nextChild.isLeaf())
             {
                 Vector3[] positions = nextChild.childrenPositions(nextChild.pos);
-                nextChild.Subdivide(VoxelManager.vdm.GenerateChildData(this, positions), positions);
+                nextChild.Subdivide(DataGenerator.GenerateChildData(this, positions), positions);
             }
             nextChild = ChildNodeWithItem(pos, nextChild);
             if (nextChild == null) return null;

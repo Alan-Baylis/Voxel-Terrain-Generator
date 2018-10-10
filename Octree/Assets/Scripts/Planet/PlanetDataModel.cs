@@ -3,19 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Planet
+public class PlanetDataModel
 {
     public Vector3 position;
     public float radius;
     public delegate bool TerrainFeature(Vector3 pos);
     public TerrainFeature terrainFeatures = delegate (Vector3 pos) { return false; };
 
-    public Planet(Vector3 pos, float _radius)
+    public PlanetDataModel(Vector3 pos, float _radius)
     {
         Setup(pos, _radius);
     }
 
-    public Planet(Vector3 pos, float _radius, TerrainFeature t)
+    public PlanetDataModel(Vector3 pos, float _radius, TerrainFeature t)
     {
         Setup(pos, _radius);
         terrainFeatures = t;

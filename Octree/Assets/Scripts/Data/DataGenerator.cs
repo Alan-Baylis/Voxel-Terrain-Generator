@@ -3,30 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class VoxelDataGenerater
+public class DataGenerator
 {
-    public List<Planet> planets = new List<Planet>();
+    public List<PlanetDataModel> planets;
 
-    public VoxelDataGenerater()
+    public DataGenerator(float worldHeightY)
     {
-        planets.Add(new Planet(new Vector3( 10, 8, 10), 2f, Perlin(1f, 0.2f)));
-        planets.Add(new Belt(new Vector3(   10, 8, 10), 4f, 0.1f, Perlin(2f, 0.7f)));
-        planets.Add(new Belt(new Vector3(   10, 8, 10), 6f, 0.1f, Perlin(5f, 0.7f)));
-
-        planets.Add(new GroundPlanet(new Vector3(3, 2, 3), 6f, Perlin(5f, 0.7f)));
-
-
-
-
-
+        planets = new List<PlanetDataModel>()
+        {
+           new PlanetDataModel(new Vector3(10, 8, 10), 2f, Perlin(1f, 0.2f)),
+          new DataModel_InfiniteGround(new Vector3(3, 2, 3), 6f, Perlin(5f, 0.7f),worldHeightY),
+          new PlanetDataModel_Belt(new Vector3(10, 8, 10), 4f, 0.1f, Perlin(2f, 0.7f)),
+          new PlanetDataModel_Belt(new Vector3(10, 8, 10), 6f, 0.1f, Perlin(5f, 0.7f))
+     };
     }
 
-    Planet.TerrainFeature Perlin(float scale, float floor)
+    static PlanetDataModel.TerrainFeature Perlin(float scale, float floor)
     {
         return delegate (Vector3 p) { return (PerlinNoise.thisPerlin.Perlin(p.x, p.y, p.z, scale) > floor); };
     }
 
-    public Voxel[] GenerateChildData(OctreeNode parent, Vector3[] childPositions)
+    public static Voxel[] GenerateChildData(OctreeNode parent, Vector3[] childPositions)
     {
         Voxel[] data = new Voxel[8];
         if (parent == null)
@@ -48,7 +45,11 @@ public class VoxelDataGenerater
 
     public int[] GenerateData(int size, float scale, Vector3Int startPos)
     {
-        int[] data = new int[size * size * size]; ;
+        startPos.x *= (size - 1);
+        startPos.y *= (size - 1);
+        startPos.z *= (size - 1);
+
+        int[] data = new int[size * size * size];
         for (int i = 0; i < size; i++)
         {
             for (int j = 0; j < size; j++)
@@ -72,11 +73,11 @@ public class VoxelDataGenerater
             v = item.VoxelAt(pos);
             if (v.opaque)
             {
-               return v.Id;
+                return v.Id;
             }
         }
 
-        return  Voxel.EMPTY.Id;
+        return Voxel.EMPTY.Id;
 
     }
 }

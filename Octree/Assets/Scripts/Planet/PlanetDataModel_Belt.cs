@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Belt : Planet
+public class PlanetDataModel_Belt : PlanetDataModel
 {
     public float minorRadius;
 
-    public Belt(Vector3 pos, float _majorRadius, float _minorRadius) : base(pos, _majorRadius)
+    public PlanetDataModel_Belt(Vector3 pos, float _majorRadius, float _minorRadius) : base(pos, _majorRadius)
     {
         minorRadius = _minorRadius;
     }
 
-    public Belt(Vector3 pos, float _majorRadius, float _minorRadius, TerrainFeature t) : base(pos, _majorRadius)
+    public PlanetDataModel_Belt(Vector3 pos, float _majorRadius, float _minorRadius, TerrainFeature t) : base(pos, _majorRadius)
     {
         minorRadius = _minorRadius;
         terrainFeatures = t;

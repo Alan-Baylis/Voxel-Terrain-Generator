@@ -2,23 +2,42 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
-public class MeshGenerator : MonoBehaviour
+public class DataPolygonizer : MonoBehaviour
 {
     OctreeNode root;
     Dictionary<OctreeNode, GameObject> Meshes = new Dictionary<OctreeNode, GameObject>();
 
     public List<OctreeNode> removeMesh = new List<OctreeNode>();
     public bool displayLines = true;
-    void Update()
+
+    public static Mesh MeshFromChunkData(int[] data, int chunkSize)
     {
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            Debug.Log("Generating Cubes");
-            GenerateCubes(root);
-        }
+        int[] _tris;
+        Color[] _cols;
+        Vector3[] _verts;
+
+        MarchingCubes(data, chunkSize, out _verts, out _tris, out _cols);
+
+        return MeshFromMeshData(_verts, _tris, _cols);
     }
 
-    public void MarchingCubes(int[] data, int chunkSize, out Vector3[] verts, out int[] tris, out Color[] cols)
+    public static Mesh MeshFromMeshData(Vector3[] verts, int[] tris, Color[] col)
+    {
+        Mesh m = new Mesh
+        {
+            vertices = verts,
+            triangles = tris,
+            colors = col
+        };
+        m.RecalculateNormals();
+        if (m.vertexCount > VoxelManager.vm.maxVerts)
+        {
+            Debug.Log("Hit mesh vertex limit");
+        }
+        return m;
+    }
+
+    public static void MarchingCubes(int[] data, int chunkSize, out Vector3[] verts, out int[] tris, out Color[] cols)
     {
         List<Vector3> _verts = new List<Vector3>();
         List<Color> _col = new List<Color>();
@@ -71,11 +90,6 @@ public class MeshGenerator : MonoBehaviour
                             //Each vertex has two edges connected
                             Vector3 edgeVert1 = edgeVertexOffsets[edgeI, 0], edgeVert2 = edgeVertexOffsets[edgeI, 1];
 
-                            if (displayLines)
-                            {
-                                DataVisualizer.thisDV.ShowLine(startPos + edgeVert1, startPos + edgeVert2);
-                            }
-
                             _verts.Add(startPos + (edgeVert1 + edgeVert2) * 0.5f);
                             _tris.Add(triCount++);
                             _col.Add(((Voxel)data[VoxelManager.getIndex(i, j, k, chunkSize)]).color);
@@ -91,7 +105,7 @@ public class MeshGenerator : MonoBehaviour
 
     }
 
-    int[] CubeCorners(int[] data, int i, int j, int k, int chunkSize)
+    static int[] CubeCorners(int[] data, int i, int j, int k, int chunkSize)
     {
         int[] corners = new int[8];
 
@@ -108,7 +122,7 @@ public class MeshGenerator : MonoBehaviour
         return corners;
     }
 
-    int GetCubeCorner(int[] data, int chunkSize, int i, int j, int k)
+    static int GetCubeCorner(int[] data, int chunkSize, int i, int j, int k)
     {
         try
         {

@@ -10,13 +10,13 @@ public class DataVisualizer : MonoBehaviour
 
     public int DisplaySize;
     public float scale = 1f;
+    public Vector3Int pos;
 
     int[] data;
     GameObject[,,] visuals;
-    VoxelDataGenerater vdm = new VoxelDataGenerater();
+    DataGenerator vdm = new DataGenerator(6);
 
     public Transform debug;
-    public MeshGenerator vmg;
     delegate int[] GenerateData();
     GenerateData genData;
 
@@ -47,10 +47,12 @@ public class DataVisualizer : MonoBehaviour
             {
                 return testData;
             };
+
+            DisplaySize = (int)Mathf.Pow(testData.Length, 1/3);
         }
         else
         {
-            genData = () => vdm.GenerateData(DisplaySize, 2f, Vector3Int.zero);
+            genData = () => vdm.GenerateData(DisplaySize, scale, pos * DisplaySize);
         }
 
         data = genData();
@@ -60,12 +62,12 @@ public class DataVisualizer : MonoBehaviour
             DisplayData();
         }
 
-        Vector3[] verts;
-        int[] tris;
-        Color[] cols;
+        //Vector3[] verts;
+        //int[] tris;
+        //Color[] cols;
 
-        vmg.MarchingCubes(data, DisplaySize, out verts, out tris, out cols);
-        mf.mesh = VoxelManager.vm.MeshFromData(verts, tris, cols);
+        //DataPolygonizer.MarchingCubes(data, DisplaySize, out verts, out tris, out cols);
+        //mf.mesh = DataPolygonizer.MeshFromMeshData(verts, tris, cols);
 
 
     }
